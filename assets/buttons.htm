@@ -1,0 +1,169 @@
+<button onclick="document.getElementById('id01').style.display='block'" style="width:auto;">Open GUI</button>
+
+<div id="id01" class="modal">
+  
+  <div class="modal-content animate">
+    <div class="imgcontainer">
+      <span onclick="document.getElementById('id01').style.display='none'" class="close" title="Close GUI">&times;</span>
+    </div>
+
+    <div class="container" id="buttonsContainer">
+      <!--
+      <label for="uname"><b>Username</b></label>
+      <input type="text" placeholder="Enter Username" name="uname" required>
+
+      <label for="psw"><b>Password</b></label>
+      <input type="password" placeholder="Enter Password" name="psw" required>
+        
+      <button type="submit">Login</button>
+      <label>
+        <input type="checkbox" checked="checked" name="remember"> Remember me
+      </label>
+      -->
+      <button info="0" style="width:auto;">Reload</button>
+      <div id="buttons">
+        <button info="1" style="width:auto;">Start</button>
+        <button info="2" style="width:auto;">Stop</button>
+        <button info="3" style="width:auto;">Restart</button>
+      </div>
+
+      <br><br>
+      <form id="nodeAppMaker">
+        <input style="width:auto;" type="text" placeholder="Enter Node app name" name="nodeName" id="nodeName" required>
+        <!--App file-->
+        <select id="selFiles">
+        </select>
+        <button info="4" style="width:auto;">Make Node app</button>
+      </form>
+    </div>
+
+    <div class="container" style="background-color:#f1f1f1">
+      <button type="button" onclick="document.getElementById('id01').style.display='none'" class="cancelbtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  async function refresh(data, socket, elements) {
+    console.log("Refreshing");
+    console.log(elements)
+
+    if (data.fileData){
+      console.log("Data received");
+      elements.buttons.style.display = "block";
+      elements.nodeAppMaker.style.display = "none";
+      if (data.fileData.running){
+        elements.buttons.children[0].style.display = "none";
+        elements.buttons.children[1].style.display = "block";
+        elements.buttons.children[2].style.display = "block";
+      } else {
+        elements.buttons.children[0].style.display = "block";
+        elements.buttons.children[1].style.display = "none";
+        elements.buttons.children[2].style.display = "none";
+      }
+    } else {
+      console.log("No data received");
+      elements.buttons.style.display = "none";
+      elements.nodeAppMaker.style.display = "block";
+    }
+  }
+
+  function onBodyLoad() {
+    // Get the modal
+    var modal = document.getElementById('id01');
+
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function (event) {
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    }
+    //Real
+    const socket = io();
+    const nodeAppMaker = document.getElementById('nodeAppMaker');
+    const data = JSON.parse(document.getElementById("data").textContent)
+    const selFiles = document.getElementById("selFiles");
+    const buttonsContainer = document.getElementById('buttonsContainer');
+    const buttons = document.getElementById('buttons');
+
+    const elements = {
+      nodeAppMaker: nodeAppMaker,
+      selFiles: selFiles,
+      buttonsContainer: buttonsContainer,
+      buttons: buttons
+    }
+
+    nodeAppMaker.style.display = "none";
+    buttons.style.display = "none";
+
+    console.log("Body loaded!");
+
+    //socket on connect
+    socket.on('connect', function () {
+      console.log("Connected to server");
+      socket.on('refreshBack', async (dataBack)=>{
+        console.log(dataBack)
+        refresh(dataBack, socket, elements);
+      });
+    });
+    //socket.emit("getFileInfo", data)
+    console.log(data)
+    //loop in data.fileList
+    for (let i = 0; i < data.fileList.length; i++) {
+      const element = data.fileList[i];
+      //check the typeRaw and make sure its not 0
+      if (element.typeRaw == 2) {
+        //create option
+        const option = document.createElement("option");
+        //set the value
+        option.value = element.name;
+        //set the text
+        option.text = element.name;
+        //append to selFiles
+        selFiles.appendChild(option);
+      }
+    }
+
+    //listen for any button tag to be clicked in buttonsContainer
+    buttonsContainer.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') {
+        const button = e.target;
+        const buttonText = button.innerText;
+        const buttonData = button.getAttribute('info');
+        console.log(buttonData);
+        switch(buttonData){
+          case "0":
+            socket.emit("refresh", data);
+            break;
+          case "1":
+            socket.emit("start", data);
+            break;
+          case "2":
+            socket.emit("stop", data);
+            break;
+          case "3":
+            socket.emit("restart", data);
+            break;
+          default:
+            console.log("Button clicked!");
+            break;
+        }
+      }
+    });
+
+    //nodeAppMaker
+    nodeAppMaker.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nodeName = document.getElementById('nodeName').value;
+      const selFiles = document.getElementById('selFiles').value;
+      console.log(nodeName, selFiles);
+      socket.emit("makeNodeApp", {
+        nodeName: nodeName,
+        selFiles: selFiles,
+        data: data
+      });
+    });
+  }
+  window.onload = onBodyLoad;
+</script>

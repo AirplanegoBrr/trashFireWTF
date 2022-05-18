@@ -1,0 +1,30 @@
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+    const socket = io()
+    socket.on('connect', () => {
+        console.log('Connected to server')
+        socket.on("refreshBack", async (data)=>{
+            console.log("Refreshing")
+            while (document.body.firstChild) {
+                document.body.removeChild(document.body.firstChild);
+            }
+            for (const key in data.pm2Data){
+                var dat = data.pm2Data[key]
+                console.log(dat)
+                var option = document.createElement("h1")
+                option.textContent = dat.name
+                var info = document.createElement("p")
+                info.textContent = `status: ${dat.status} | ID: ${dat.pmID} | mem: ${dat.monit.memory} | cpu: ${dat.monit.cpu}`
+                var div = document.createElement("div")
+                div.appendChild(option)
+                div.appendChild(info)
+                document.body.appendChild(div)
+            }
+        })
+    })
+    //every 5 seconds, trigger a refresh
+    setInterval(() => {
+        socket.emit('refresh', null)
+    }, 1000)
+</script>
